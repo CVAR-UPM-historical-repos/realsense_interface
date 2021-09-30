@@ -63,21 +63,19 @@ void RsT265Interface::runOdom(){
     // Cast the frame to pose_frame and get its data
     auto pose_data = f.as<rs2::pose_frame>().get_pose_data();
 
-    std::string frame_id = "rs_odom_own";
-    std::string child_frame_id = "rs_link_own";
+    // TF
     rclcpp::Time timestamp = this->get_clock()->now();
 
-    // TF
-    odom_rs_to_base_link_rs_transform_.header.frame_id = frame_id;
-    odom_rs_to_base_link_rs_transform_.child_frame_id  = child_frame_id;
-    odom_rs_to_base_link_rs_transform_.header.stamp    = timestamp;
-    odom_rs_to_base_link_rs_transform_.transform.translation.x = pose_data.translation.x;
-    odom_rs_to_base_link_rs_transform_.transform.translation.y = pose_data.translation.y;
-    odom_rs_to_base_link_rs_transform_.transform.translation.z = pose_data.translation.z;
-    odom_rs_to_base_link_rs_transform_.transform.rotation.x = pose_data.rotation.x;
-    odom_rs_to_base_link_rs_transform_.transform.rotation.y = pose_data.rotation.y;
-    odom_rs_to_base_link_rs_transform_.transform.rotation.z = pose_data.rotation.z;
-    odom_rs_to_base_link_rs_transform_.transform.rotation.w = pose_data.rotation.w;
+    rs_odom2rs_link_tf_.header.frame_id = "rs_odom";
+    rs_odom2rs_link_tf_.child_frame_id  = "rs_link";
+    rs_odom2rs_link_tf_.header.stamp    = timestamp;
+    rs_odom2rs_link_tf_.transform.translation.x = pose_data.translation.x;
+    rs_odom2rs_link_tf_.transform.translation.y = pose_data.translation.y;
+    rs_odom2rs_link_tf_.transform.translation.z = pose_data.translation.z;
+    rs_odom2rs_link_tf_.transform.rotation.x = pose_data.rotation.x;
+    rs_odom2rs_link_tf_.transform.rotation.y = pose_data.rotation.y;
+    rs_odom2rs_link_tf_.transform.rotation.z = pose_data.rotation.z;
+    rs_odom2rs_link_tf_.transform.rotation.w = pose_data.rotation.w;
 
     publishTFs();
 
@@ -89,10 +87,11 @@ void RsT265Interface::runOdom(){
     geometry_msgs::msg::Vector3Stamped vio_twist_linear_vect;
 	geometry_msgs::msg::Vector3Stamped vio_twist_angular_vect ;
 
-    geometry_msgs::msg::Vector3Stamped base_link_vio_twist_linear_vect;
-    geometry_msgs::msg::Vector3Stamped base_link_sum_twist_linear_vect;
     geometry_msgs::msg::Vector3Stamped odom_twist_linear_vect;
+    geometry_msgs::msg::Vector3Stamped rs_link_twist_angular_vect;
     geometry_msgs::msg::Vector3Stamped base_link_twist_angular_vect;
+    // geometry_msgs::msg::Vector3Stamped base_link_vio_twist_linear_vect;
+    // geometry_msgs::msg::Vector3Stamped base_link_sum_twist_linear_vect;
 
     vio_twist_linear_vect.vector.x  = pose_data.velocity.x;
     vio_twist_linear_vect.vector.y  = pose_data.velocity.y;
@@ -102,42 +101,60 @@ void RsT265Interface::runOdom(){
     vio_twist_angular_vect.vector.z = pose_data.angular_velocity.z;
 
     try {
-        // Obtain mav pose in odom reference frame
+        // POSE: Obtain mav pose in odom reference frame
         auto pose_transform = tf_buffer_->lookupTransform("odom","base_link",tf2::TimePointZero);
         odom_msg.pose.pose.position.x  = pose_transform.transform.translation.x;
         odom_msg.pose.pose.position.y  = pose_transform.transform.translation.y;
         odom_msg.pose.pose.position.z  = pose_transform.transform.translation.z;
         odom_msg.pose.pose.orientation = pose_transform.transform.rotation;
 
-        // Obtain mav angular speed in base_link frame 
-        auto angular_twist_transform = tf_buffer_->lookupTransform("base_link","rs_link_own",tf2::TimePointZero);
-        tf2::doTransform(vio_twist_angular_vect, base_link_twist_angular_vect, angular_twist_transform);
+        // ANGULAR VELOCITY: Obtain mav angular velocity in base_link frame 
+        auto angular_twist_transform_0 = tf_buffer_->lookupTransform("rs_link_stab","rs_link",tf2::TimePointZero);
+        tf2::doTransform(vio_twist_angular_vect, rs_link_twist_angular_vect, angular_twist_transform_0);
+        auto angular_twist_transform_1 = tf_buffer_->lookupTransform("base_link","rs_odom",tf2::TimePointZero);
+        tf2::doTransform(vio_twist_angular_vect, base_link_twist_angular_vect, angular_twist_transform_1);
         odom_msg.twist.twist.angular = base_link_twist_angular_vect.vector;
 
-        // const float camera_offset_roll = -45.0f/180.0f *M_PI;
-        const float camera_offset_x = 0.0f;
-        const float camera_offset_y = -0.11f;
-        const float camera_offset_z = 0.01f;
+        // LINEAR VELOCITY: Obtain mav linear velocity in odom reference frame
+        auto linear_twist_rs2od_tf = tf_buffer_->lookupTransform("odom","rs_odom",tf2::TimePointZero);
+        linear_twist_rs2od_tf.transform.translation.x = 0;
+        linear_twist_rs2od_tf.transform.translation.y = 0;
+        linear_twist_rs2od_tf.transform.translation.z = 0;
+        tf2::doTransform(vio_twist_linear_vect, odom_twist_linear_vect, linear_twist_rs2od_tf);
+        odom_msg.twist.twist.linear = odom_twist_linear_vect.vector;
 
-        // TODO: Review this
-        // Obtain mav linear speed in odom reference frame
-        // From rs_link_own to base_link
-        auto linear_twist_rs2bl_tf = tf_buffer_->lookupTransform("base_link","rs_link_own",tf2::TimePointZero);
-        tf2::doTransform(vio_twist_linear_vect, base_link_vio_twist_linear_vect, linear_twist_rs2bl_tf);
-
-        // Eigen::Vector3d w_vector(vio_twist_angular_vect.vector); // w_rs
-        Eigen::Vector3d r_vector(-camera_offset_y,-camera_offset_x,-camera_offset_z);
-        Eigen::Vector3d w_vector(base_link_twist_angular_vect.vector.x,base_link_twist_angular_vect.vector.y,base_link_twist_angular_vect.vector.z); // w_bl
-        Eigen::Vector3d linear_vel_from_rotation = w_vector.cross(r_vector);
-
-        base_link_sum_twist_linear_vect.vector.x = base_link_vio_twist_linear_vect.vector.x + linear_vel_from_rotation.x();
-        base_link_sum_twist_linear_vect.vector.y = base_link_vio_twist_linear_vect.vector.y + linear_vel_from_rotation.y();
-        base_link_sum_twist_linear_vect.vector.z = base_link_vio_twist_linear_vect.vector.z + linear_vel_from_rotation.z();
+        // TODO: Add velocity from rotation.
+        // LINEAR VELOCITY: Obtain mav linear velocity in odom reference frame
+        // From rs_link_stab to base_link
+        // auto linear_twist_rs2bl_tf = tf_buffer_->lookupTransform("base_link","rs_link_stab",tf2::TimePointZero);
+        // linear_twist_rs2bl_tf.transform.translation.x = 0;
+        // linear_twist_rs2bl_tf.transform.translation.y = 0;
+        // linear_twist_rs2bl_tf.transform.translation.z = 0;
+        // tf2::doTransform(vio_twist_linear_vect, base_link_vio_twist_linear_vect, linear_twist_rs2bl_tf);
 
         // From base_link to odom
-        auto linear_twist_bl2od_tf = tf_buffer_->lookupTransform("odom","base_link",tf2::TimePointZero);
-        tf2::doTransform(base_link_sum_twist_linear_vect, odom_twist_linear_vect, linear_twist_bl2od_tf);
-        odom_msg.twist.twist.linear = odom_twist_linear_vect.vector;
+        // auto linear_twist_bl2od_tf = tf_buffer_->lookupTransform("odom","base_link",tf2::TimePointZero);
+        // linear_twist_bl2od_tf.transform.translation.x = 0;
+        // linear_twist_bl2od_tf.transform.translation.y = 0;
+        // linear_twist_bl2od_tf.transform.translation.z = 0;
+        // tf2::doTransform(base_link_vio_twist_linear_vect, odom_twist_linear_vect, linear_twist_bl2od_tf);
+
+        // // Eigen::Vector3d w_vector(vio_twist_angular_vect.vector); // w_rs
+        // Eigen::Vector3d r_vector(-camera_offset_y_,-camera_offset_x_,-camera_offset_z_);
+        // Eigen::Vector3d w_vector(base_link_twist_angular_vect.vector.x,base_link_twist_angular_vect.vector.y,base_link_twist_angular_vect.vector.z); // w_bl
+        // Eigen::Vector3d linear_vel_from_rotation = w_vector.cross(r_vector);
+
+        // base_link_sum_twist_linear_vect.vector.x = base_link_vio_twist_linear_vect.vector.x + linear_vel_from_rotation.x();
+        // base_link_sum_twist_linear_vect.vector.y = base_link_vio_twist_linear_vect.vector.y + linear_vel_from_rotation.y();
+        // base_link_sum_twist_linear_vect.vector.z = base_link_vio_twist_linear_vect.vector.z + linear_vel_from_rotation.z();
+
+        // // From base_link to odom
+        // auto linear_twist_bl2od_tf = tf_buffer_->lookupTransform("odom","base_link",tf2::TimePointZero);
+        // tf2::doTransform(base_link_vio_twist_linear_vect, odom_twist_linear_vect, linear_twist_bl2od_tf);
+        // odom_msg.twist.twist.linear = odom_twist_linear_vect.vector;
+
+        // // odom_msg.twist.twist.linear = base_link_vio_twist_linear_vect.vector;
+        // odom_msg.twist.twist.linear = base_link_sum_twist_linear_vect.vector;
 
         // double roll,pitch,yaw;
         // tf2::Quaternion q(pose_transform.transform.rotation.x,
@@ -160,15 +177,8 @@ void RsT265Interface::runOdom(){
 
 void RsT265Interface::setupTf()
 {
-    // Change ref system from standard camera frame to Realsense frame.
-    const float rs_roll  = 180.0f/180.0f *M_PI;
-    const float rs_pitch =   0.0f *M_PI;
-    const float rs_yaw   =   0.0f *M_PI;
-    // Change ref system from ENU to standard camera frame.
-    const float cam_roll  = -90.0f/180.0f *M_PI;
-    const float cam_pitch =   0.0f/180.0f *M_PI;
-    const float cam_yaw   =   0.0f/180.0f *M_PI;
-
+    // Change from rs ENU to frame OWN.
+    const float camera_odom_roll  = 90.0f/180.0f *M_PI;
     // Change from frame ENU to frame FLU.
     const float flu_roll  = 0.0f *M_PI;
     const float flu_pitch = 0.0f *M_PI;
@@ -176,31 +186,20 @@ void RsT265Interface::setupTf()
 
     //TODO: Read camera position from config file.
 	tf2_fix_transforms_.clear();
-
     // global reference to drone reference
     tf2_fix_transforms_.emplace_back(getTransformation("map","odom",0,0,0,0,0,0));
-    
     // drone reference to camera reference
     tf2_fix_transforms_.emplace_back(getTransformation("odom","rs_odom_enu",camera_offset_x_,camera_offset_y_,camera_offset_z_,0,0,0));
-    tf2_fix_transforms_.emplace_back(getTransformation("rs_odom_enu","rs_odom",0,0,0,0,camera_offset_pitch_,camera_offset_yaw_));
-
-    // odom frame adaptation to camera frame
-    tf2_fix_transforms_.emplace_back(getTransformation("rs_odom","rs_odom_cam",0,0,0,cam_roll,cam_pitch,cam_yaw));
-    tf2_fix_transforms_.emplace_back(getTransformation("rs_odom_cam","rs_odom_own",0,0,0,rs_roll,rs_pitch,rs_yaw));
-    
-    // camera frames adaptation
-    tf2_fix_transforms_.emplace_back(getTransformation("rs_link_own","rs_link_cam",0,0,0,rs_roll,rs_pitch,rs_yaw));
-    tf2_fix_transforms_.emplace_back(getTransformation("rs_link_cam","rs_link",0,0,0,-cam_roll,cam_pitch,cam_yaw));
-    
+    tf2_fix_transforms_.emplace_back(getTransformation("rs_odom_enu","rs_odom",0,0,0,camera_odom_roll,camera_offset_pitch_,camera_offset_yaw_));
     // camera position to drone position
-    tf2_fix_transforms_.emplace_back(getTransformation("rs_link","rs_link_enu",0,0,0,camera_offset_roll_,camera_offset_pitch_,camera_offset_yaw_));
+    tf2_fix_transforms_.emplace_back(getTransformation("rs_link","rs_link_stab",0,0,0,-camera_offset_roll_,0,0));
+    tf2_fix_transforms_.emplace_back(getTransformation("rs_link_stab","rs_link_enu",0,0,0,camera_odom_roll,camera_offset_pitch_,camera_offset_yaw_));
     tf2_fix_transforms_.emplace_back(getTransformation("rs_link_enu","base_link_enu",-camera_offset_x_,-camera_offset_y_,-camera_offset_z_,0,0,0));
     tf2_fix_transforms_.emplace_back(getTransformation("base_link_enu","base_link",0,0,0,flu_roll,flu_pitch,flu_yaw));
-
     // Odom_rs to rs_link_own
-	odom_rs_to_base_link_rs_transform_.header.frame_id = "rs_odom_own";
-	odom_rs_to_base_link_rs_transform_.child_frame_id  = "rs_link_own";
-	odom_rs_to_base_link_rs_transform_.transform.rotation.w = 1.0f;
+	rs_odom2rs_link_tf_.header.frame_id = "rs_odom";
+	rs_odom2rs_link_tf_.child_frame_id  = "rs_link";
+	rs_odom2rs_link_tf_.transform.rotation.w = 1.0f;
 
     publishTFs();
 
@@ -213,8 +212,10 @@ void RsT265Interface::publishTFs(){
         transform.header.stamp = timestamp;
         tfstatic_broadcaster_->sendTransform(transform);
     }
-    odom_rs_to_base_link_rs_transform_.header.stamp = timestamp;
-    tf_broadcaster_->sendTransform(odom_rs_to_base_link_rs_transform_);
+    rs_odom2rs_link_tf_.header.stamp = timestamp;
+    tf_broadcaster_->sendTransform(rs_odom2rs_link_tf_);
+    // rs_odom2rs_link_vel_tf_.header.stamp = timestamp;
+    // tf_broadcaster_->sendTransform(rs_odom2rs_link_vel_tf_);
 
 }
 

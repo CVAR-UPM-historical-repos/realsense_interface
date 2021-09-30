@@ -67,13 +67,15 @@ class RsT265Interface:public aerostack2::Node{
         std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
         
         std::vector<geometry_msgs::msg::TransformStamped> tf2_fix_transforms_;
-        geometry_msgs::msg::TransformStamped odom_rs_to_base_link_rs_transform_;
+        geometry_msgs::msg::TransformStamped rs_odom2rs_link_tf_;
+        // geometry_msgs::msg::TransformStamped rs_odom2rs_link_vel_tf_;
+
 
         // Camera offsets from base_link frame ENU
         const float camera_offset_x_ =  0.0f;
         const float camera_offset_y_ = -0.11f;
         const float camera_offset_z_ =  0.01f;
-        const float camera_offset_roll_  = -45.0f/180.0f *M_PI;
+        const float camera_offset_roll_  =  -45.0f/180.0f *M_PI;
         const float camera_offset_pitch_ =   0.0f/180.0f *M_PI;
         const float camera_offset_yaw_   = 180.0f/180.0f *M_PI;
 
