@@ -5,8 +5,6 @@
 int main(int argc, char * argv[])
 {
   // find_device_with_streams
-  std::cout << "Starting sensor_combined listener node... " << std::endl;
-  setvbuf(stdout, NULL, _IONBF, BUFSIZ);
   rclcpp::init(argc, argv);
   auto ptr = std::make_shared<RsT265Interface>();
   ptr->setupOdom();
@@ -19,6 +17,7 @@ int main(int argc, char * argv[])
     r.sleep();
   }
 
+  ptr->stopOdom();
   rclcpp::shutdown();
   return 0;
 }

@@ -47,6 +47,10 @@ target_link_libraries(${PROJECT_NAME}_node ${realsense2_LIBRARY})
 ament_target_dependencies(${PROJECT_NAME}_node rclcpp tf2 tf2_ros tf2_geometry_msgs std_msgs sensor_msgs nav_msgs geometry_msgs std_srvs aerostack2_core aerostack2_msgs)
 
 
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME})
+
 install(TARGETS
   ${PROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME})

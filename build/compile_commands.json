@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/home/dps/aerostack2_ws/src/aerostack2/stack/hardware_interface/realsense_interface/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DDEFAULT_RMW_IMPLEMENTATION=rmw_fastrtps_cpp -DRCUTILS_ENABLE_FAULT_INJECTION -DSPDLOG_COMPILED_LIB -I/home/dps/aerostack2_ws/src/aerostack2/stack/hardware_interface/realsense_interface/include -I/home/dps/aerostack2_ws/src/aerostack2/stack/hardware_interface/realsense_interface/include/realsense_interface -isystem /opt/ros/foxy/include -isystem /home/dps/aerostack2_ws/install/aerostack2_core/include -isystem /home/dps/aerostack2_ws/install/aerostack2_msgs/include -isystem /usr/include/eigen3  -g   -std=gnu++14 -o CMakeFiles/realsense_interface_node.dir/src/rs_t265_interface_node.cpp.o -c /home/dps/aerostack2_ws/src/aerostack2/stack/hardware_interface/realsense_interface/src/rs_t265_interface_node.cpp",
+  "file": "/home/dps/aerostack2_ws/src/aerostack2/stack/hardware_interface/realsense_interface/src/rs_t265_interface_node.cpp"
+},
+{
+  "directory": "/home/dps/aerostack2_ws/src/aerostack2/stack/hardware_interface/realsense_interface/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DDEFAULT_RMW_IMPLEMENTATION=rmw_fastrtps_cpp -DRCUTILS_ENABLE_FAULT_INJECTION -DSPDLOG_COMPILED_LIB -I/home/dps/aerostack2_ws/src/aerostack2/stack/hardware_interface/realsense_interface/include -I/home/dps/aerostack2_ws/src/aerostack2/stack/hardware_interface/realsense_interface/include/realsense_interface -isystem /opt/ros/foxy/include -isystem /home/dps/aerostack2_ws/install/aerostack2_core/include -isystem /home/dps/aerostack2_ws/install/aerostack2_msgs/include -isystem /usr/include/eigen3  -g   -std=gnu++14 -o CMakeFiles/realsense_interface_node.dir/src/rs_t265_interface.cpp.o -c /home/dps/aerostack2_ws/src/aerostack2/stack/hardware_interface/realsense_interface/src/rs_t265_interface.cpp",
+  "file": "/home/dps/aerostack2_ws/src/aerostack2/stack/hardware_interface/realsense_interface/src/rs_t265_interface.cpp"
+}
+]

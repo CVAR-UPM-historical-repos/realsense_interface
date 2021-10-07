@@ -28,6 +28,7 @@ geometry_msgs::msg::TransformStamped transformation;
 }
 
 RsT265Interface::RsT265Interface():aerostack2::Node("rs_t265"){
+
     odom_       = std::make_shared<aerostack2::Sensor<nav_msgs::msg::Odometry>>("odom",this);
     imu_sensor_ = std::make_shared<aerostack2::Sensor<sensor_msgs::msg::Imu>>("imu",this);
     // Initialize the transform broadcaster
@@ -38,11 +39,17 @@ RsT265Interface::RsT265Interface():aerostack2::Node("rs_t265"){
     
 };
 
+RsT265Interface::~RsT265Interface(){
+    // RCLCPP_INFO(this->get_logger(),"Realsense destroyed");
+}
+
 void RsT265Interface::setupOdom(){
+
     if (!find_device_with_stream({ RS2_STREAM_POSE}, serial_))
     {
-        RCLCPP_ERROR(this->get_logger(),"Device with stream for pose not found");
+        RCLCPP_ERROR(this->get_logger(),"VIO camera not found");
         EXIT_SUCCESS;
+        return;
     }
     // Create a configuration for configuring the pipeline with a non default profile
     rs2::config cfg;
@@ -52,6 +59,15 @@ void RsT265Interface::setupOdom(){
     cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
     // Start pipeline with chosen configuration
     pipe_.start(cfg);
+
+    RCLCPP_INFO(this->get_logger(),"VIO device node ready");
+};
+
+void RsT265Interface::stopOdom(){
+
+    pipe_.stop();
+    // RCLCPP_INFO(this->get_logger(),"Realsense pipe stopped");
+
 };
 
 void RsT265Interface::runOdom(){
@@ -166,8 +182,10 @@ void RsT265Interface::runOdom(){
         // std::cout << "roll: " << roll << " pitch: " << pitch << " yaw: " << yaw << std::endl;
     }
     catch (tf2::TransformException &ex) {
+
         std::cout << "Warning: Transform fail" << std::endl;
       	RCLCPP_WARN(this->get_logger(),"Failure %s\n", ex.what()); //Print exception which was caught
+        
     }
 
     odom_->publishData(odom_msg);
@@ -206,6 +224,7 @@ void RsT265Interface::setupTf()
 }
 
 void RsT265Interface::publishTFs(){
+
     rclcpp::Time timestamp = this->get_clock()->now();
     
     for (geometry_msgs::msg::TransformStamped& transform:tf2_fix_transforms_){
@@ -214,8 +233,6 @@ void RsT265Interface::publishTFs(){
     }
     rs_odom2rs_link_tf_.header.stamp = timestamp;
     tf_broadcaster_->sendTransform(rs_odom2rs_link_tf_);
-    // rs_odom2rs_link_vel_tf_.header.stamp = timestamp;
-    // tf_broadcaster_->sendTransform(rs_odom2rs_link_vel_tf_);
 
 }
 
@@ -310,16 +327,16 @@ bool find_device_with_stream(std::vector <rs2_stream> stream_requests, std::stri
         {
         case RS2_STREAM_POSE:
         case RS2_STREAM_FISHEYE:
-            std::cerr << "Connect T26X" << std::endl;
+            std::cerr << "Realsense t265" << std::endl;
             break;
         case RS2_STREAM_DEPTH:
-            std::cerr << "Connect Realsense camera with DEPTH sensor" << std::endl;
+            std::cerr << "Realsense camera with DEPTH sensor" << std::endl;
             break;
         case RS2_STREAM_COLOR:
-            std::cerr << "Connect Realsense camera with RGB sensor" << std::endl;
+            std::cerr << "Realsense camera with RGB sensor" << std::endl;
             break;
         default:
-            throw std::runtime_error("The requested stream: " + std::to_string(type) + ", for the demo is not supported by connected devices!"); // stream type
+            throw std::runtime_error("The requested stream: " + std::to_string(type) + ", is not supported by connected devices!"); // stream type
         }
     }
     return false;

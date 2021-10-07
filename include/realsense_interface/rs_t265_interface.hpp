@@ -34,6 +34,7 @@ bool check_imu_is_supported();
 class RsT265Interface:public aerostack2::Node{
     public:
         RsT265Interface();
+        ~RsT265Interface();
         // void setup_imu();
         // void run_imu();
         // void ownSetup(){
@@ -45,17 +46,19 @@ class RsT265Interface:public aerostack2::Node{
         //     run_tf();
         // }
         void setupOdom();
+        void stopOdom();
         void runOdom();
+
         void setupTf();
         void runTf();
-
         void publishTFs();
+        
         void publishEstimatedPose();
 
 
     private:
         // Sensor comm
-        std::string serial_;
+        std::string   serial_;
         rs2::pipeline pipe_;
         // Sensor measurement
         std::shared_ptr<aerostack2::Sensor<nav_msgs::msg::Odometry>> odom_;
