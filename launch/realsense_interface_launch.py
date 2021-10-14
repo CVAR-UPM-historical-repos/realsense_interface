@@ -1,15 +1,20 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     return LaunchDescription([
+        DeclareLaunchArgument('drone_id', default_value='drone0'),
         Node(
             package='realsense_interface',
             executable='realsense_interface_node',
-            name='realsense_interface_node',
+            name='realsense_interface',
+            namespace=LaunchConfiguration('drone_id'),
             remappings=[
-                ('/drone0/rs_t265/odom',   '/drone0/self_localization/odom')
+                ('realsense_interface/odom',   'self_localization/odom')
             ],
-            output='screen'
+            output='screen',
+            emulate_tty=True
         )
     ])
