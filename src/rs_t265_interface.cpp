@@ -39,10 +39,6 @@ RsT265Interface::RsT265Interface():aerostack2::Node("rs_t265"){
     
 };
 
-RsT265Interface::~RsT265Interface(){
-    // RCLCPP_INFO(this->get_logger(),"Realsense destroyed");
-}
-
 void RsT265Interface::setupOdom(){
 
     if (!find_device_with_stream({ RS2_STREAM_POSE}, serial_))

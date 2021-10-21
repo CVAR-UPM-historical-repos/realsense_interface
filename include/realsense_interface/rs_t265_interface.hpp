@@ -34,7 +34,6 @@ bool check_imu_is_supported();
 class RsT265Interface:public aerostack2::Node{
     public:
         RsT265Interface();
-        ~RsT265Interface();
         // void setup_imu();
         // void run_imu();
         // void ownSetup(){
@@ -50,7 +49,6 @@ class RsT265Interface:public aerostack2::Node{
         void runOdom();
 
         void setupTf();
-        void runTf();
         void publishTFs();
         
         void publishEstimatedPose();
