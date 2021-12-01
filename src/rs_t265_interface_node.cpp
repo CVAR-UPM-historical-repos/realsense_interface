@@ -31,23 +31,21 @@
  ********************************************************************************/
 
 #include "rs_t265_interface.hpp"
+#include "as2_core/core_functions.hpp"
+
 
 int main(int argc, char * argv[])
 {
   // find_device_with_streams
   rclcpp::init(argc, argv);
-  auto ptr = std::make_shared<RsT265Interface>();
-  ptr->setupOdom();
-  ptr->setupTf();
-  rclcpp::Rate r(200);
+  auto node = std::make_shared<RsT265Interface>();
+  node->setupOdom();
+  node->setupTf();  
   
-  while(rclcpp::ok()){
-    ptr->runOdom();
-    rclcpp::spin_some(ptr);
-    r.sleep();
-  }
-
-  ptr->stopOdom();
+  node->preset_loop_frequency(200);
+  as2::spinLoop(node, std::bind(&RsT265Interface::runOdom, node));
+  
+  node->stopOdom();
   rclcpp::shutdown();
   return 0;
 }
