@@ -79,92 +79,92 @@ bool find_device_with_stream(std::vector <rs2_stream> stream_requests, std::stri
 bool check_imu_is_supported();
 
 class RsT265Interface:public as2::Node{
-    public:
-        /**
-         * @brief Constructor of the RsT265Interface object
-         * 
-         */
-        RsT265Interface();
+  public:
+    /**
+     * @brief Constructor of the RsT265Interface object
+     * 
+     */
+    RsT265Interface();
 
-        // void setup_imu();
-        // void run_imu();
-        // void ownSetup(){
-        //     setup_odom();
-        //     setup_tf();
-        // }
-        // void ownRun(){
-        //     run_odom();
-        //     run_tf();
-        // }
+    // void setup_imu();
+    // void run_imu();
+    // void ownSetup(){
+    //     setup_odom();
+    //     setup_tf();
+    // }
+    // void ownRun(){
+    //     run_odom();
+    //     run_tf();
+    // }
 
-        /**
-         * @brief Initial setup for node odometry.
-         * This function check if the VIO device is ready and starts the pipeline.
-         */
-        void setupOdom();
+    /**
+     * @brief Initial setup for node odometry.
+     * This function check if the VIO device is ready and starts the pipeline.
+     */
+    void setupOdom();
 
-        /**
-         * @brief Stop rutine for odometry node.
-         * This function stops the pipeline.
-         */
-        void stopOdom();
+    /**
+     * @brief Stop rutine for odometry node.
+     * This function stops the pipeline.
+     */
+    void stopOdom();
 
-        /**
-         * @brief Funtionality during node lifetime.
-         * This function gets the pose data from VIO device,
-         * updates the transform tree and
-         * and publish the odometry message.
-         */
-        void runOdom();
-        
-        /**
-         * @brief Initial setup for node Tranforms
-         * This function generate the Transforms tree
-         * from the relative position between links.
-         */
-        void setupTf();
+    /**
+     * @brief Funtionality during node lifetime.
+     * This function gets the pose data from VIO device,
+     * updates the transform tree and
+     * and publish the odometry message.
+     */
+    void runOdom();
+    
+    /**
+     * @brief Initial setup for node Tranforms
+     * This function generate the Transforms tree
+     * from the relative position between links.
+     */
+    void setupTf();
 
-        /**
-         * @brief Publish Transforms tree
-         * This function publish the Transformation
-         * between base link and device link
-         */
-        void publishTFs();
+    /**
+     * @brief Publish Transforms tree
+     * This function publish the Transformation
+     * between base link and device link
+     */
+    void publishTFs();
 
-        /**
-         * @brief Set the Tf Tree object
-         * This function updates the Tranform tree
-         */
-        void setTfTree();
+    /**
+     * @brief Set the Tf Tree object
+     * This function updates the Tranform tree
+     */
+    void setTfTree();
 
-    private:
-        // Sensor comm
-        std::string   serial_;
-        rs2::pipeline pipe_;
-        // Sensor measurement
-        std::shared_ptr<as2::sensors::Sensor<nav_msgs::msg::Odometry>> odom_;
-        std::shared_ptr<as2::sensors::Imu> imu_sensor_;
-        // Sensor Tf
-        std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-        std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
-        // std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
-        std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
-        
-        std::vector<geometry_msgs::msg::TransformStamped> tf2_fix_transforms_;
-        geometry_msgs::msg::TransformStamped rs_odom2rs_link_tf_;
-        // geometry_msgs::msg::TransformStamped rs_odom2rs_link_vel_tf_;
-        std::string base_link_str;
-        std::string rs_link_str;
-        std::string odom_str;
+  private:
+    // Sensor comm
+    std::string   serial_;
+    rs2::pipeline pipe_;
+    // Sensor measurement
+    std::shared_ptr<as2::sensors::Sensor<nav_msgs::msg::Odometry>> odom_;
+    std::shared_ptr<as2::sensors::Imu> imu_sensor_;
+    // Sensor Tf
+    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+    std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tfstatic_broadcaster_;
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer_tree_;
+    
+    std::vector<geometry_msgs::msg::TransformStamped> tf2_fix_transforms_;
+    geometry_msgs::msg::TransformStamped rs_odom2rs_link_tf_;
+    // geometry_msgs::msg::TransformStamped rs_odom2rs_link_vel_tf_;
+    std::string base_link_str;
+    std::string rs_link_str;
+    std::string odom_str;
 
-
-        // Camera offsets from base_link frame ENU
-        const float camera_offset_x_ =  0.0f;
-        const float camera_offset_y_ = -0.11f;
-        const float camera_offset_z_ =  0.01f;
-        const float camera_offset_roll_  = -47.0f/180.0f *M_PI;
-        const float camera_offset_pitch_ =   0.0f;
-        const float camera_offset_yaw_   = 180.0f/180.0f *M_PI;
+    // Camera offsets from base_link frame ENU
+    const float camera_offset_x_ =  0.0f;
+    const float camera_offset_y_ = -0.11f;
+    const float camera_offset_z_ =  0.01f;
+    const float camera_offset_roll_  = -47.0f/180.0f *M_PI;
+    const float camera_offset_pitch_ =   0.0f;
+    const float camera_offset_yaw_   = 180.0f/180.0f *M_PI;
 
 };
 

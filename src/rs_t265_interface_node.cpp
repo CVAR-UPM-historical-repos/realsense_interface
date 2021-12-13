@@ -42,7 +42,7 @@ int main(int argc, char * argv[])
   node->setupOdom();
   node->setupTf();  
   
-  node->preset_loop_frequency(200);
+  // node->preset_loop_frequency(200);
   as2::spinLoop(node, std::bind(&RsT265Interface::runOdom, node));
   
   node->stopOdom();
