@@ -6,6 +6,7 @@ from launch.substitutions import LaunchConfiguration
 def generate_launch_description():
   return LaunchDescription([
     DeclareLaunchArgument('drone_id', default_value='drone0'),
+    DeclareLaunchArgument('node_frequency', default_value='100.0'),
     Node(
       package='realsense_interface',
       executable='realsense_interface_node',
@@ -16,6 +17,6 @@ def generate_launch_description():
       ],
       output='screen',
       emulate_tty=True,
-      parameters=[{'node_frequency': 100.0}]
+      parameters=[{'node_frequency': LaunchConfiguration('node_frequency')}]
     )
   ])
