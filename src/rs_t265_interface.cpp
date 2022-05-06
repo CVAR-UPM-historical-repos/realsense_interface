@@ -190,7 +190,7 @@ void RsT265Interface::runOdom(){
     RCLCPP_WARN(this->get_logger(),"Failure %s\n", ex.what()); //Print exception which was caught
   }
 
-  odom_->publishData(odom_msg);
+  odom_->updateData(odom_msg);
 
   return;
 };
