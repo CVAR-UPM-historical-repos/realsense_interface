@@ -7,7 +7,7 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
@@ -16,7 +16,7 @@
  * 3. Neither the name of the copyright holder nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
  * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -32,28 +32,29 @@
 
 #include "rs_t265_interface.hpp"
 
-RsT265Interface::RsT265Interface():as2::Node("rs_t265"){
+RsT265Interface::RsT265Interface() : as2::Node("rs_t265")
+{
 
-  odom_       = std::make_shared<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("odom",this);
-  imu_sensor_ = std::make_shared<as2::sensors::Imu>("imu",this);
+  odom_ = std::make_shared<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("odom", this);
+  imu_sensor_ = std::make_shared<as2::sensors::Imu>("imu", this);
   // Initialize the transform broadcaster
-  tf_broadcaster_       = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+  tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
   tfstatic_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
-  tf_buffer_            = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-  tf_buffer_tree_       = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-  tf_listener_          = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_tree_);
+  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+  tf_buffer_tree_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_tree_);
   std::string ns = this->get_namespace();
-  base_link_str = generateTfName(ns,"base_link");
-  rs_link_str   = generateTfName(ns,"rs_link");
-  odom_str      = generateTfName(ns,"odom");
-
+  base_link_str = generateTfName(ns, "base_link");
+  rs_link_str = generateTfName(ns, "rs_link");
+  odom_str = generateTfName(ns, "odom");
 };
 
-void RsT265Interface::setupOdom(){
+void RsT265Interface::setupOdom()
+{
 
   if (!find_device_with_stream({RS2_STREAM_POSE}, serial_))
   {
-    RCLCPP_ERROR(this->get_logger(),"VIO camera not found");
+    RCLCPP_ERROR(this->get_logger(), "VIO camera not found");
     exit(EXIT_SUCCESS);
   }
   // Create a configuration for configuring the pipeline with a non default profile
@@ -65,16 +66,17 @@ void RsT265Interface::setupOdom(){
   // Start pipeline with chosen configuration
   pipe_.start(cfg);
 
-  RCLCPP_INFO(this->get_logger(),"VIO device node ready");
-    
+  RCLCPP_INFO(this->get_logger(), "VIO device node ready");
 };
 
-void RsT265Interface::stopOdom(){
+void RsT265Interface::stopOdom()
+{
   pipe_.stop();
 };
 
-void RsT265Interface::runOdom(){
-    
+void RsT265Interface::runOdom()
+{
+
   // Wait for the next set of frames from the camera
   auto frames = pipe_.wait_for_frames();
   // Get a frame from the pose stream
@@ -86,8 +88,8 @@ void RsT265Interface::runOdom(){
   rclcpp::Time timestamp = this->get_clock()->now();
 
   rs_odom2rs_link_tf_.header.frame_id = "rs_odom";
-  rs_odom2rs_link_tf_.child_frame_id  = rs_link_str;
-  rs_odom2rs_link_tf_.header.stamp    = timestamp;
+  rs_odom2rs_link_tf_.child_frame_id = rs_link_str;
+  rs_odom2rs_link_tf_.header.stamp = timestamp;
   rs_odom2rs_link_tf_.transform.translation.x = pose_data.translation.x;
   rs_odom2rs_link_tf_.transform.translation.y = pose_data.translation.y;
   rs_odom2rs_link_tf_.transform.translation.z = pose_data.translation.z;
@@ -101,11 +103,11 @@ void RsT265Interface::runOdom(){
 
   nav_msgs::msg::Odometry odom_msg;
   odom_msg.header.frame_id = odom_str;
-  odom_msg.child_frame_id  = base_link_str;
-  odom_msg.header.stamp    = timestamp;
+  odom_msg.child_frame_id = base_link_str;
+  odom_msg.header.stamp = timestamp;
 
   geometry_msgs::msg::Vector3Stamped vio_twist_linear_vect;
-	geometry_msgs::msg::Vector3Stamped vio_twist_angular_vect ;
+  geometry_msgs::msg::Vector3Stamped vio_twist_angular_vect;
 
   geometry_msgs::msg::Vector3Stamped odom_twist_linear_vect;
   geometry_msgs::msg::Vector3Stamped rs_link_twist_angular_vect;
@@ -113,30 +115,31 @@ void RsT265Interface::runOdom(){
   // geometry_msgs::msg::Vector3Stamped base_link_vio_twist_linear_vect;
   // geometry_msgs::msg::Vector3Stamped base_link_sum_twist_linear_vect;
 
-  vio_twist_linear_vect.vector.x  = pose_data.velocity.x;
-  vio_twist_linear_vect.vector.y  = pose_data.velocity.y;
-  vio_twist_linear_vect.vector.z  = pose_data.velocity.z;
+  vio_twist_linear_vect.vector.x = pose_data.velocity.x;
+  vio_twist_linear_vect.vector.y = pose_data.velocity.y;
+  vio_twist_linear_vect.vector.z = pose_data.velocity.z;
   vio_twist_angular_vect.vector.x = pose_data.angular_velocity.x;
   vio_twist_angular_vect.vector.y = pose_data.angular_velocity.y;
   vio_twist_angular_vect.vector.z = pose_data.angular_velocity.z;
 
-  try {
+  try
+  {
     // POSE: Obtain mav pose in odom reference frame
-    auto pose_transform = tf_buffer_->lookupTransform(odom_str,base_link_str,tf2::TimePointZero);
-    odom_msg.pose.pose.position.x  = pose_transform.transform.translation.x;
-    odom_msg.pose.pose.position.y  = pose_transform.transform.translation.y;
-    odom_msg.pose.pose.position.z  = pose_transform.transform.translation.z;
+    auto pose_transform = tf_buffer_->lookupTransform(odom_str, base_link_str, tf2::TimePointZero);
+    odom_msg.pose.pose.position.x = pose_transform.transform.translation.x;
+    odom_msg.pose.pose.position.y = pose_transform.transform.translation.y;
+    odom_msg.pose.pose.position.z = pose_transform.transform.translation.z;
     odom_msg.pose.pose.orientation = pose_transform.transform.rotation;
 
-    // ANGULAR VELOCITY: Obtain mav angular velocity in base_link frame 
-    auto angular_twist_transform_0 = tf_buffer_->lookupTransform("rs_link_stab",rs_link_str,tf2::TimePointZero);
+    // ANGULAR VELOCITY: Obtain mav angular velocity in base_link frame
+    auto angular_twist_transform_0 = tf_buffer_->lookupTransform("rs_link_stab", rs_link_str, tf2::TimePointZero);
     tf2::doTransform(vio_twist_angular_vect, rs_link_twist_angular_vect, angular_twist_transform_0);
-    auto angular_twist_transform_1 = tf_buffer_->lookupTransform(base_link_str,"rs_odom",tf2::TimePointZero);
+    auto angular_twist_transform_1 = tf_buffer_->lookupTransform(base_link_str, "rs_odom", tf2::TimePointZero);
     tf2::doTransform(vio_twist_angular_vect, base_link_twist_angular_vect, angular_twist_transform_1);
     odom_msg.twist.twist.angular = base_link_twist_angular_vect.vector;
 
     // LINEAR VELOCITY: Obtain mav linear velocity in odom reference frame
-    auto linear_twist_rs2od_tf = tf_buffer_->lookupTransform(odom_str,"rs_odom",tf2::TimePointZero);
+    auto linear_twist_rs2od_tf = tf_buffer_->lookupTransform(odom_str, "rs_odom", tf2::TimePointZero);
     linear_twist_rs2od_tf.transform.translation.x = 0;
     linear_twist_rs2od_tf.transform.translation.y = 0;
     linear_twist_rs2od_tf.transform.translation.z = 0;
@@ -185,9 +188,10 @@ void RsT265Interface::runOdom(){
     // m.getEulerYPR(yaw,pitch,roll);
     // std::cout << "roll: " << roll << " pitch: " << pitch << " yaw: " << yaw << std::endl;
   }
-  catch (tf2::TransformException &ex) {
+  catch (tf2::TransformException &ex)
+  {
     std::cout << "Warning: Transform fail" << std::endl;
-    RCLCPP_WARN(this->get_logger(),"Failure %s\n", ex.what()); //Print exception which was caught
+    RCLCPP_WARN(this->get_logger(), "Failure %s\n", ex.what()); // Print exception which was caught
   }
 
   odom_->updateData(odom_msg);
@@ -198,25 +202,25 @@ void RsT265Interface::runOdom(){
 void RsT265Interface::setupTf()
 {
   // Change from rs_link ENU to rs OWN.
-  const float camera_roll  = 90.0f/180.0f *M_PI;
+  const float camera_roll = 90.0f / 180.0f * M_PI;
   // Change from rs_link STAB to base_link
-  const float camera_pitch = 90.0f/180.0f *M_PI;
-  const float camera_yaw   = 90.0f/180.0f *M_PI;
+  const float camera_pitch = 90.0f / 180.0f * M_PI;
+  const float camera_yaw = 90.0f / 180.0f * M_PI;
 
-  //TODO: Read camera position from config file.
+  // TODO: Read camera position from config file.
   tf2_fix_transforms_.clear();
 
   // tf2_fix_transforms_.emplace_back(tf_buffer_->lookupTransform("map","rs_link",tf2::TimePointZero);
   // drone reference to camera reference
-  tf2_fix_transforms_.emplace_back(getTransformation(odom_str,"rs_odom",camera_offset_x_,camera_offset_y_,camera_offset_z_,camera_roll,camera_offset_pitch_,camera_offset_yaw_));
+  tf2_fix_transforms_.emplace_back(getTransformation(odom_str, "rs_odom", camera_offset_x_, camera_offset_y_, camera_offset_z_, camera_roll, camera_offset_pitch_, camera_offset_yaw_));
   // camera position to drone position
-  tf2_fix_transforms_.emplace_back(getTransformation(rs_link_str,"rs_link_stab",0,0,0,-camera_offset_roll_,0,0));
-  tf2_fix_transforms_.emplace_back(getTransformation("rs_link_stab",base_link_str,camera_offset_x_,-camera_offset_z_,-camera_offset_y_,0.0,-camera_pitch,-camera_yaw));
+  tf2_fix_transforms_.emplace_back(getTransformation(rs_link_str, "rs_link_stab", 0, 0, 0, -camera_offset_roll_, 0, 0));
+  tf2_fix_transforms_.emplace_back(getTransformation("rs_link_stab", base_link_str, camera_offset_x_, -camera_offset_z_, -camera_offset_y_, 0.0, -camera_pitch, -camera_yaw));
 
   // Odom_rs to rs_link_own
-	rs_odom2rs_link_tf_.header.frame_id = "rs_odom";
-	rs_odom2rs_link_tf_.child_frame_id  = rs_link_str;
-	rs_odom2rs_link_tf_.transform.rotation.w = 1.0f;
+  rs_odom2rs_link_tf_.header.frame_id = "rs_odom";
+  rs_odom2rs_link_tf_.child_frame_id = rs_link_str;
+  rs_odom2rs_link_tf_.transform.rotation.w = 1.0f;
 
   setTfTree();
   publishTFs();
@@ -236,13 +240,12 @@ void RsT265Interface::setupTf()
   // tf2_fix_transforms_.emplace_back(getTransformation("rs_link_stab","rs_link_enu",0,0,0,camera_odom_roll,camera_offset_pitch_,camera_offset_yaw_));
   // tf2_fix_transforms_.emplace_back(getTransformation("rs_link_enu","base_link_enu",-camera_offset_x_,-camera_offset_y_,-camera_offset_z_,0,0,0));
   // tf2_fix_transforms_.emplace_back(getTransformation("base_link_enu",base_link_str,0,0,0,flu_roll,flu_pitch,flu_yaw));
-
 }
 
 // void RsT265Interface::publishTFs(){
 
 //     rclcpp::Time timestamp = this->get_clock()->now();
-    
+
 //     for (geometry_msgs::msg::TransformStamped& transform:tf2_fix_transforms_){
 //         transform.header.stamp = timestamp;
 //         tfstatic_broadcaster_->sendTransform(transform);
@@ -252,22 +255,23 @@ void RsT265Interface::setupTf()
 
 // }
 
-void RsT265Interface::setTfTree(){
+void RsT265Interface::setTfTree()
+{
 
   rclcpp::Time timestamp = this->get_clock()->now();
-  const std::string authority="empty";
-  
-  for (geometry_msgs::msg::TransformStamped& transform:tf2_fix_transforms_){
+  const std::string authority = "empty";
+
+  for (geometry_msgs::msg::TransformStamped &transform : tf2_fix_transforms_)
+  {
     transform.header.stamp = timestamp;
     tf_buffer_->setTransform(transform, authority, true);
   }
   rs_odom2rs_link_tf_.header.stamp = timestamp;
   tf_buffer_->setTransform(rs_odom2rs_link_tf_, authority, false);
-
 }
 
-
-void RsT265Interface::publishTFs(){
+void RsT265Interface::publishTFs()
+{
 
   geometry_msgs::msg::TransformStamped transform;
   rclcpp::Time timestamp = this->get_clock()->now();
@@ -279,16 +283,17 @@ void RsT265Interface::publishTFs(){
   // transform.header.stamp = timestamp;
   // tf_broadcaster_->sendTransform(transform);
   // TODO: clean
-  try{
-    transform = tf_buffer_->lookupTransform(base_link_str,rs_link_str,tf2::TimePointZero);
+  try
+  {
+    transform = tf_buffer_->lookupTransform(base_link_str, rs_link_str, tf2::TimePointZero);
     transform.header.stamp = timestamp;
     tf_broadcaster_->sendTransform(transform);
   }
-  catch (tf2::TransformException &ex) {
+  catch (tf2::TransformException &ex)
+  {
     std::cout << "Warning: Transform fail" << std::endl;
-    RCLCPP_WARN(this->get_logger(),"Failure %s\n", ex.what()); //Print exception which was caught
+    RCLCPP_WARN(this->get_logger(), "Failure %s\n", ex.what()); // Print exception which was caught
   }
-
 }
 
 // TODO:Add IMU to realsense node. Choose between loop or callback.
@@ -337,20 +342,20 @@ void RsT265Interface::publishTFs(){
 // };
 
 // Auxiliar functions
-bool find_device_with_stream(std::vector <rs2_stream> stream_requests, std::string& out_serial)
+bool find_device_with_stream(std::vector<rs2_stream> stream_requests, std::string &out_serial)
 {
   rs2::context ctx;
   auto devs = ctx.query_devices();
-  std::vector <rs2_stream> unavailable_streams = stream_requests;
+  std::vector<rs2_stream> unavailable_streams = stream_requests;
   for (auto dev : devs)
   {
     std::map<rs2_stream, bool> found_streams;
-    for (auto& type : stream_requests)
+    for (auto &type : stream_requests)
     {
       found_streams[type] = false;
-      for (auto& sensor : dev.query_sensors())
+      for (auto &sensor : dev.query_sensors())
       {
-        for (auto& profile : sensor.get_stream_profiles())
+        for (auto &profile : sensor.get_stream_profiles())
         {
           if (profile.stream_type() == type)
           {
@@ -364,7 +369,7 @@ bool find_device_with_stream(std::vector <rs2_stream> stream_requests, std::stri
     }
     // Check if all streams are found in current device
     bool found_all_streams = true;
-    for (auto& stream : found_streams)
+    for (auto &stream : found_streams)
     {
       if (!stream.second)
       {
@@ -376,7 +381,7 @@ bool find_device_with_stream(std::vector <rs2_stream> stream_requests, std::stri
       return true;
   }
   // After scanning all devices, not all requested streams were found
-  for (auto& type : unavailable_streams)
+  for (auto &type : unavailable_streams)
   {
     switch (type)
     {
