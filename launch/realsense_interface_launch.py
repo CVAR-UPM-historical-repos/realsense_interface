@@ -10,10 +10,9 @@ def generate_launch_description():
     Node(
       package='realsense_interface',
       executable='realsense_interface_node',
-      name='realsense_interface',
       namespace=LaunchConfiguration('drone_id'),
       remappings=[
-          ('realsense_interface/odom',   'self_localization/odom')
+          ('sensor_measurements/rs_t265/odom',   'self_localization/odom')
       ],
       output='screen',
       emulate_tty=True,

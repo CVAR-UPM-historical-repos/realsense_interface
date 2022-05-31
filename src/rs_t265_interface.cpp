@@ -35,7 +35,7 @@
 RsT265Interface::RsT265Interface() : as2::Node("rs_t265")
 {
 
-  odom_ = std::make_shared<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("odom", this);
+  odom_ = std::make_shared<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("rs_t265/odom", this); // TODO: Check topic name
   imu_sensor_ = std::make_shared<as2::sensors::Imu>("imu", this);
   // Initialize the transform broadcaster
   tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
