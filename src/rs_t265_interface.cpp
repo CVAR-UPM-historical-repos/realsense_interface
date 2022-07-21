@@ -190,8 +190,8 @@ void RsT265Interface::runOdom()
   }
   catch (tf2::TransformException &ex)
   {
-    std::cout << "Warning: Transform fail" << std::endl;
-    RCLCPP_WARN(this->get_logger(), "Failure %s\n", ex.what()); // Print exception which was caught
+    // std::cout << "Warning: Transform fail" << std::endl;
+    RCLCPP_WARN(this->get_logger(), "Tranform Failure: %s\n", ex.what()); // Print exception which was caught
   }
 
   odom_->updateData(odom_msg);
