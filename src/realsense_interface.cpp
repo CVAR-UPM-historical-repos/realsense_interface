@@ -35,6 +35,7 @@
 #include <librealsense2/h/rs_types.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Vector3.h>
 #include <as2_core/utils/tf_utils.hpp>
 #include <librealsense2/hpp/rs_frame.hpp>
 #include <librealsense2/hpp/rs_sensor.hpp>
@@ -326,10 +327,28 @@ void RealsenseInterface::runPose(const rs2::pose_frame &pose_frame_) {
       tf2::Quaternion(base_link_pose.getRotation().getX(), base_link_pose.getRotation().getY(),
                       base_link_pose.getRotation().getZ(), base_link_pose.getRotation().getW()));
 
-  // TODO: Get linear and angular velocity from pose data
-  odom_msg.twist.twist.linear.x  = pose_data.velocity.x;
-  odom_msg.twist.twist.linear.y  = pose_data.velocity.y;
-  odom_msg.twist.twist.linear.z  = pose_data.velocity.z;
+  // Linear velocity
+  // odom_msg.twist.twist.linear.x = pose_data.velocity.x;
+  // odom_msg.twist.twist.linear.y = pose_data.velocity.y;
+  // odom_msg.twist.twist.linear.z = pose_data.velocity.z;
+
+  tf2::Vector3 linear_velocity(pose_data.velocity.x, pose_data.velocity.y, pose_data.velocity.z);
+  // tf2::Vector3 base_link_linear_velocity = base_link_to_realsense_link_.inverse().getBasis() *
+  //                                          realsense_link_to_realsense_pose_.inverse().getBasis()
+  //                                          * realsense_pose_.getBasis() * linear_velocity;
+
+  tf2::Vector3 odom_linear_velocity = base_link_to_realsense_pose_odom_.getBasis() *
+                                      realsense_link_to_realsense_pose_.getBasis() *
+                                      linear_velocity;
+
+  tf2::Vector3 base_link_linear_velocity =
+      base_link_pose.inverse().getBasis() * odom_linear_velocity;
+
+  odom_msg.twist.twist.linear.x = base_link_linear_velocity.getX();
+  odom_msg.twist.twist.linear.y = base_link_linear_velocity.getY();
+  odom_msg.twist.twist.linear.z = base_link_linear_velocity.getZ();
+
+  // TODO: Get angular velocity from pose data
   odom_msg.twist.twist.angular.x = pose_data.angular_velocity.x;
   odom_msg.twist.twist.angular.y = pose_data.angular_velocity.y;
   odom_msg.twist.twist.angular.z = pose_data.angular_velocity.z;
@@ -396,21 +415,20 @@ void RealsenseInterface::setupPoseTransforms(const std::array<double, 3> &device
   device_q.setRPY(device_r[0], device_r[1], device_r[2]);
 
   // Change from rs_link FLU to rs OWN.
-  const float rs_link2pose_rot[3]       = {M_PI_2, 0, -M_PI_2};
-  const double rs_link2pose_odom_rot[3] = {M_PI_2 + device_r[1], 0, -M_PI_2};
+  const float rs_link2pose_rot[3] = {M_PI_2, 0, -M_PI_2};
   tf2::Quaternion rs_link2pose_q;
   tf2::Quaternion base_link2pose_odom_q;
   rs_link2pose_q.setRPY(rs_link2pose_rot[0], rs_link2pose_rot[1], rs_link2pose_rot[2]);
   base_link2pose_odom_q.setRPY(0.0, 0.0, device_r[2]);
 
-  // Base link to Realsense link
+  // Base link to Realsense link FRU
   base_link_to_realsense_link_ =
       tf2::Transform(device_q, tf2::Vector3(device_t[0], device_t[1], device_t[2]));
 
   // Realsense link to Realsense pose
   realsense_link_to_realsense_pose_ = tf2::Transform(rs_link2pose_q, tf2::Vector3(0, 0, 0));
 
-  // Base link to Realsense pose odom
+  // Base link to Realsense pose odom in FRU
   // This should be agnostic to the device pitch and roll (but not yaw) initial orientation
   base_link_to_realsense_pose_odom_ =
       tf2::Transform(base_link2pose_odom_q, tf2::Vector3(device_t[0], device_t[1], device_t[2]));
