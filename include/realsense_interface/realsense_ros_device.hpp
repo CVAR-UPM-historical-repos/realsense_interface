@@ -81,55 +81,25 @@ public:
   ~RealsenseROSDevice();
 
   std::vector<geometry_msgs::msg::TransformStamped> realsense_transforms_;
-  void setStaticTransforms();  // SET TF BETWEEN CAMERA AND BASE LINK
+  void setStaticTransform();  // SET TF BETWEEN CAMERA AND BASE LINK
   // GET TF BETWEEN SENSOR_BASE_LINK AND EACH SENSOR
-  std::vector<geometry_msgs::msg::TransformStamped> getTFsBetweenSensors(){};
+  std::vector<geometry_msgs::msg::TransformStamped> getTFsBetweenSensors();
 
-  void RGBCameraCb() {
-    std::cout << "RGB CAMERA CB" << std::endl;
-    cv::Mat rgb_image;
-    double timestamp;
-    getCameraFrame(&rgb_image, RS2_STREAM_COLOR, 0, &timestamp);
-  };
+  void RGBCameraCb();
   void DepthCameraCb();
   void FishEyeCamerasCb();
   void ImuCb();
   void OdometryCb();
 
-  void enableRGB() {
-    if (enableStream(RS2_STREAM_COLOR)) {
-      static auto RGB_timer = node_->create_timer(
-          std::chrono::milliseconds(100), std::bind(&RealsenseROSDevice::RGBCameraCb, this));
-    }
-  };
-
-  void enableDepth() {
-    if (enableStream(RS2_STREAM_DEPTH)) {
-      static auto Depth_timer = node_->create_timer(
-          std::chrono::milliseconds(100), std::bind(&RealsenseROSDevice::DepthCameraCb, this));
-    }
-  };
-  void enableFishEye() {
-    if (enableStream(RS2_STREAM_FISHEYE)) {
-      static auto FishEye_timer = node_->create_timer(
-          std::chrono::milliseconds(100), std::bind(&RealsenseROSDevice::FishEyeCamerasCb, this));
-    }
-  };
-  void enableIMU() {
-    if (enableStream(RS2_STREAM_ACCEL) && enableStream(RS2_STREAM_GYRO)) {
-      static auto IMU_timer = node_->create_timer(std::chrono::milliseconds(100),
-                                                  std::bind(&RealsenseROSDevice::ImuCb, this));
-    }
-  };
-  void enableOdometry() {
-    if (enableStream(RS2_STREAM_POSE)) {
-      static auto Odometry_timer = node_->create_timer(
-          std::chrono::milliseconds(100), std::bind(&RealsenseROSDevice::OdometryCb, this));
-    }
-  };
+  void enableRGB();
+  void enableDepth();
+  void enableFishEye();
+  void enableIMU();
+  void enableOdometry();
 
 private:
   as2::Node *node_;
+  RealsenseDevice device_;
 
 protected:
 private:
