@@ -71,12 +71,6 @@ public:
   RealsenseInterface();
 
   /**
-   * @brief Stop rutine for odometry node.
-   * This function stops the pipeline.
-   */
-  void stop();
-
-  /**
    * @brief Funtionality during node lifetime.
    * This function gets the pose data from VIO device,
    * updates the transform tree and
@@ -85,27 +79,11 @@ public:
   void run();
 
 private:
-  std::string realsense_name_;
-
-  bool verbose_;
-  bool device_not_found_;
-  bool imu_available_;
-  bool depth_available_;
-  bool color_available_;
-  bool fisheye_available_;
-  bool pose_available_;
-
-  // Sensor comm
-  std::string serial_;
-  rs2::pipeline pipe_;
+  // ROS
   // Sensor measurement
   std::shared_ptr<as2::sensors::Sensor<nav_msgs::msg::Odometry>> pose_sensor_;
   std::shared_ptr<as2::sensors::Imu> imu_sensor_;
   std::shared_ptr<as2::sensors::Camera> color_sensor_;
-  std::shared_ptr<rs2::motion_frame> accel_frame_;
-  std::shared_ptr<rs2::motion_frame> gyro_frame_;
-  std::shared_ptr<rs2::pose_frame> pose_frame_;
-  std::shared_ptr<rs2::video_frame> color_frame_;
 
   std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
 
@@ -125,27 +103,58 @@ private:
   tf2::Transform realsense_link_to_realsense_pose_odom_;
   tf2::Transform realsense_pose_;
 
-  bool setup();
+  // COMMON ATTRIBUTES
+  std::string realsense_name_;
+  bool verbose_;
+  bool device_not_found_;
+  bool imu_available_;
+  bool color_available_;
+  std::shared_ptr<rs2::motion_frame> accel_frame_;
+  std::shared_ptr<rs2::motion_frame> gyro_frame_;
 
+  // Sensor comm
+  std::string serial_;
+  rs2::pipeline pipe_;
+
+  // T265
+  bool fisheye_available_;
+  bool pose_available_;
+  std::shared_ptr<rs2::pose_frame> pose_frame_;
+  // D435 & D435i
+  bool depth_available_;
+  std::shared_ptr<rs2::video_frame> color_frame_;
+
+private:
+  // DEPRECATED (T265)
+  void runOdom(const rs2::pose_frame &pose_frame);
+
+  // T265
+  void runPose(const rs2::pose_frame &pose_frame);
+  void setupPoseTransforms(const std::array<double, 3> &device_t,
+                           const std::array<double, 3> &device_r);
+
+  // D435
   void setupCamera(const std::shared_ptr<as2::sensors::Camera> &_camera,
                    const rs2_stream _rs2_stream,
                    const std::string _encoding,
                    const std::string _camera_model);
-
-  void runImu(const rs2::motion_frame &accel_frame, const rs2::motion_frame &gyro_frame);
-  void runPose(const rs2::pose_frame &pose_frame);
-  void runOdom(const rs2::pose_frame &pose_frame);
   void runColor(const rs2::video_frame &color_frame);
 
+  // COMMON
   bool identifyDevice();
   bool identifySensors(const rs2::device &dev);
+  bool setup();
+  void runImu(const rs2::motion_frame &accel_frame,
+              const rs2::motion_frame &gyro_frame);  // D435i and T265
   void setStaticTransform(const std::string _rs_link,
                           const std::string _ref_frame,
                           const std::array<double, 3> &_t,
                           const std::array<double, 3> &_r);
-
-  void setupPoseTransforms(const std::array<double, 3> &device_t,
-                           const std::array<double, 3> &device_r);
+  /**
+   * @brief Stop rutine for odometry node.
+   * This function stops the pipeline.
+   */
+  void stop();
 };
 
 #endif  // REALSENSE_INTERFACE_HPP_
