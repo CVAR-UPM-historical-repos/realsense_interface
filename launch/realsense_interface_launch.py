@@ -14,7 +14,7 @@ def realsenseNode(context, *args, **kwargs):
         print('Device not supported')
         return None
 
-    print(device_string)
+    print(f'Device selected: {device_string}')
 
     tf_device_config = PathJoinSubstitution([
         FindPackageShare('realsense_interface'),
@@ -30,16 +30,12 @@ def realsenseNode(context, *args, **kwargs):
           namespace=LaunchConfiguration('namespace'),
           parameters=[{'node_frequency': LaunchConfiguration('node_frequency')},
                       LaunchConfiguration('tf_device_config')],
-          remappings=[
-              ('sensor_measurements/realsense/odom', 'sensor_measurements/odom')
-          ],
           output='screen',
           emulate_tty=True,
         )
   ]
 
 def generate_launch_description():
-    # Declare arguments
     namespace = DeclareLaunchArgument('namespace', default_value='drone0')
     node_frequency = DeclareLaunchArgument('node_frequency', default_value='100.0')
     device = DeclareLaunchArgument('device', default_value='')

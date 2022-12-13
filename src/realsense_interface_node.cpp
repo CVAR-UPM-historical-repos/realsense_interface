@@ -34,15 +34,11 @@
 #include "realsense_interface.hpp"
 
 int main(int argc, char* argv[]) {
-  // find_device_with_streams
   rclcpp::init(argc, argv);
   auto node = std::make_shared<RealsenseInterface>();
-  // if (node->setup()) {
-  // node->setupTf();
   node->preset_loop_frequency(100);
+
   as2::spinLoop(node, std::bind(&RealsenseInterface::run, node));
-  // node->stop();
-  // }
 
   rclcpp::shutdown();
   return 0;

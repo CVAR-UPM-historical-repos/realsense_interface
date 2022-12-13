@@ -44,10 +44,12 @@
 #include <string>
 
 RealsenseInterface::RealsenseInterface() : as2::Node("realsense_interface") {
+  // Publishers
   pose_sensor_ =
       std::make_shared<as2::sensors::Sensor<nav_msgs::msg::Odometry>>("realsense/odom", this);
   imu_sensor_   = std::make_shared<as2::sensors::Imu>("realsense/imu", this);
   color_sensor_ = std::make_shared<as2::sensors::Camera>("realsense/color", this);
+
   // Initialize the transform broadcaster
   tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
 
@@ -67,7 +69,6 @@ bool RealsenseInterface::setup() {
 
   // Get parameters
   this->get_parameter("rs_name", realsense_name_);
-  std::cout << "RS_NAME: " << realsense_name_ << std::endl;
   verbose_ = this->declare_parameter("verbose", true);
 
   std::string tf_link_frame;
@@ -135,7 +136,7 @@ bool RealsenseInterface::setup() {
   pipe_.start(cfg);
 
   if (color_available_) {
-    std::cout << "Color sensor available" << std::endl;
+    RCLCPP_INFO(this->get_logger(), "Configuring color stream");
     std::string encoding     = sensor_msgs::image_encodings::RGB8;
     std::string camera_model = "pinhole";
 
@@ -192,13 +193,13 @@ void RealsenseInterface::run() {
 
     // D435(i) DEPTH
     if (frame.get_profile().stream_type() == RS2_STREAM_DEPTH) {
-      // TODO: D435(i)
+      // TODO: Implement depth frame for D435(i)
       // auto depth       = frame.as<rs2::video_frame>();
       // auto depth_data  = depth.get_data();
     }
 
     // T265 FISHEYE
-    // TODO: Fisheye may be used like color but with 2 cameras.
+    // TODO: Implement fisheye for t265. It may be used like color but with 2 cameras.
     if (frame.get_profile().stream_type() == RS2_STREAM_FISHEYE) {
       // auto fisheye_index = frame.get_profile().stream_index();
       // auto fisheye       = frame.as<rs2::video_frame>();
@@ -223,87 +224,10 @@ void RealsenseInterface::run() {
   return;
 };
 
-// FIXME: This is the old way to get odometry. Remove when runPose is working
-void RealsenseInterface::runOdom(const rs2::pose_frame &pose_frame_){
-    // rs2_pose pose_data     = pose_frame_.as<rs2::pose_frame>().get_pose_data();
-    // rclcpp::Time timestamp = rclcpp::Time(pose_frame_.get_timestamp());
-
-    // rs_odom2rs_link_tf_.header.frame_id         = rs_odom_frame_;
-    // rs_odom2rs_link_tf_.child_frame_id          = rs_link_frame_;
-    // rs_odom2rs_link_tf_.header.stamp            = timestamp;
-    // rs_odom2rs_link_tf_.transform.translation.x = pose_data.translation.x;
-    // rs_odom2rs_link_tf_.transform.translation.y = pose_data.translation.y;
-    // rs_odom2rs_link_tf_.transform.translation.z = pose_data.translation.z;
-    // rs_odom2rs_link_tf_.transform.rotation.x    = pose_data.rotation.x;
-    // rs_odom2rs_link_tf_.transform.rotation.y    = pose_data.rotation.y;
-    // rs_odom2rs_link_tf_.transform.rotation.z    = pose_data.rotation.z;
-    // rs_odom2rs_link_tf_.transform.rotation.w    = pose_data.rotation.w;
-
-    // setTfTree();
-    // // publishTFs();
-
-    // nav_msgs::msg::Odometry odom_msg;
-    // odom_msg.header.frame_id = odom_frame_;
-    // odom_msg.child_frame_id  = base_link_frame_;
-    // odom_msg.header.stamp    = timestamp;
-
-    // geometry_msgs::msg::Vector3Stamped vio_twist_linear_vect;
-    // geometry_msgs::msg::Vector3Stamped vio_twist_angular_vect;
-
-    // geometry_msgs::msg::Vector3Stamped odom_twist_linear_vect;
-    // geometry_msgs::msg::Vector3Stamped rs_link_twist_angular_vect;
-    // geometry_msgs::msg::Vector3Stamped base_link_twist_angular_vect;
-
-    // vio_twist_linear_vect.vector.x  = pose_data.velocity.x;
-    // vio_twist_linear_vect.vector.y  = pose_data.velocity.y;
-    // vio_twist_linear_vect.vector.z  = pose_data.velocity.z;
-    // vio_twist_angular_vect.vector.x = pose_data.angular_velocity.x;
-    // vio_twist_angular_vect.vector.y = pose_data.angular_velocity.y;
-    // vio_twist_angular_vect.vector.z = pose_data.angular_velocity.z;
-
-    // try {
-    //   // POSE: Obtain mav pose in odom reference frame
-    //   auto pose_transform =
-    //       tf_buffer_->lookupTransform(odom_frame_, base_link_frame_, tf2::TimePointZero);
-    //   odom_msg.pose.pose.position.x  = pose_transform.transform.translation.x;
-    //   odom_msg.pose.pose.position.y  = pose_transform.transform.translation.y;
-    //   odom_msg.pose.pose.position.z  = pose_transform.transform.translation.z;
-    //   odom_msg.pose.pose.orientation = pose_transform.transform.rotation;
-
-    //   // ANGULAR VELOCITY: Obtain mav angular velocity in base_link frame
-    //   auto angular_twist_transform_0 =
-    //       tf_buffer_->lookupTransform(rs_pose_frame_, rs_link_frame_, tf2::TimePointZero);
-    //   tf2::doTransform(vio_twist_angular_vect, rs_link_twist_angular_vect,
-    //   angular_twist_transform_0);
-    //   auto angular_twist_transform_1 =
-    //       tf_buffer_->lookupTransform(base_link_frame_, rs_odom_frame_, tf2::TimePointZero);
-    //   tf2::doTransform(vio_twist_angular_vect, base_link_twist_angular_vect,
-    //                    angular_twist_transform_1);
-    //   odom_msg.twist.twist.angular = base_link_twist_angular_vect.vector;
-
-    //   // LINEAR VELOCITY: Obtain mav linear velocity in odom reference frame
-    //   auto linear_twist_rs2od_tf =
-    //       tf_buffer_->lookupTransform(odom_frame_, rs_odom_frame_, tf2::TimePointZero);
-    //   linear_twist_rs2od_tf.transform.translation.x = 0;
-    //   linear_twist_rs2od_tf.transform.translation.y = 0;
-    //   linear_twist_rs2od_tf.transform.translation.z = 0;
-    //   tf2::doTransform(vio_twist_linear_vect, odom_twist_linear_vect, linear_twist_rs2od_tf);
-    //   odom_msg.twist.twist.linear = odom_twist_linear_vect.vector;
-
-    // } catch (tf2::TransformException &ex) {
-    //   // std::cout << "Warning: Transform fail" << std::endl;
-    //   RCLCPP_WARN(this->get_logger(), "Tranform Failure: %s\n",
-    //               ex.what());  // Print exception which was caught
-    // }
-
-    // pose_sensor_->updateData(odom_msg);
-
-    // return;
-};
-
 void RealsenseInterface::runPose(const rs2::pose_frame &pose_frame_) {
-  rs2_pose pose_data     = pose_frame_.as<rs2::pose_frame>().get_pose_data();
-  rclcpp::Time timestamp = rclcpp::Time(pose_frame_.get_timestamp());
+  rs2_pose pose_data = pose_frame_.as<rs2::pose_frame>().get_pose_data();
+  // Realsense timestamp is in microseconds
+  rclcpp::Time timestamp = rclcpp::Time(pose_frame_.get_timestamp() * 1000);
 
   realsense_pose_ = tf2::Transform(
       tf2::Quaternion(pose_data.rotation.x, pose_data.rotation.y, pose_data.rotation.z,
@@ -327,15 +251,36 @@ void RealsenseInterface::runPose(const rs2::pose_frame &pose_frame_) {
       tf2::Quaternion(base_link_pose.getRotation().getX(), base_link_pose.getRotation().getY(),
                       base_link_pose.getRotation().getZ(), base_link_pose.getRotation().getW()));
 
-  // Linear velocity
-  // odom_msg.twist.twist.linear.x = pose_data.velocity.x;
-  // odom_msg.twist.twist.linear.y = pose_data.velocity.y;
-  // odom_msg.twist.twist.linear.z = pose_data.velocity.z;
+  // Check if odom orientation is valid
+  if (std::isnan(odom_msg.pose.pose.orientation.x) ||
+      std::isnan(odom_msg.pose.pose.orientation.y) ||
+      std::isnan(odom_msg.pose.pose.orientation.z) ||
+      std::isnan(odom_msg.pose.pose.orientation.w)) {
+    RCLCPP_ERROR(get_logger(), "Odom orientation is NaN");
+    return;
+  }
+  // Check if odom orientation module is 1
+  if (std::abs(odom_msg.pose.pose.orientation.x * odom_msg.pose.pose.orientation.x +
+               odom_msg.pose.pose.orientation.y * odom_msg.pose.pose.orientation.y +
+               odom_msg.pose.pose.orientation.z * odom_msg.pose.pose.orientation.z +
+               odom_msg.pose.pose.orientation.w * odom_msg.pose.pose.orientation.w - 1.0) > 0.01) {
+    RCLCPP_ERROR(get_logger(), "Odom orientation module is not 1");
+    return;
+  }
 
-  tf2::Vector3 linear_velocity(pose_data.velocity.x, pose_data.velocity.y, pose_data.velocity.z);
-  // tf2::Vector3 base_link_linear_velocity = base_link_to_realsense_link_.inverse().getBasis() *
-  //                                          realsense_link_to_realsense_pose_.inverse().getBasis()
-  //                                          * realsense_pose_.getBasis() * linear_velocity;
+  // New method to obtain linear velocity
+  tf2::Vector3 rs_linear_velocity(pose_data.velocity.x, pose_data.velocity.y, pose_data.velocity.z);
+  tf2::Vector3 rs_angular_velocity(pose_data.angular_velocity.x, pose_data.angular_velocity.y,
+                                   pose_data.angular_velocity.z);
+
+  // Drone_velocity = RS_velocity - RS_ang_vel x RS_position
+  tf2::Vector3 linear_velocity =
+      rs_linear_velocity -
+      tf2::Vector3(rs_angular_velocity.getX(), rs_angular_velocity.getY(),
+                   rs_angular_velocity.getZ())
+          .cross(tf2::Vector3(base_link_to_realsense_link_.getOrigin().getX(),
+                              base_link_to_realsense_link_.getOrigin().getY(),
+                              base_link_to_realsense_link_.getOrigin().getZ()));
 
   tf2::Vector3 odom_linear_velocity = base_link_to_realsense_pose_odom_.getBasis() *
                                       realsense_link_to_realsense_pose_.getBasis() *
@@ -348,10 +293,42 @@ void RealsenseInterface::runPose(const rs2::pose_frame &pose_frame_) {
   odom_msg.twist.twist.linear.y = base_link_linear_velocity.getY();
   odom_msg.twist.twist.linear.z = base_link_linear_velocity.getZ();
 
-  // TODO: Get angular velocity from pose data
-  odom_msg.twist.twist.angular.x = pose_data.angular_velocity.x;
-  odom_msg.twist.twist.angular.y = pose_data.angular_velocity.y;
-  odom_msg.twist.twist.angular.z = pose_data.angular_velocity.z;
+  tf2::Vector3 odom_angular_velocity = base_link_to_realsense_pose_odom_.getBasis() *
+                                       realsense_link_to_realsense_pose_.getBasis() *
+                                       rs_angular_velocity;
+
+  tf2::Vector3 base_link_angular_velocity =
+      base_link_pose.inverse().getBasis() * odom_angular_velocity;
+
+  // odom_msg.twist.twist.angular.x = pose_data.angular_velocity.x;
+  // odom_msg.twist.twist.angular.y = pose_data.angular_velocity.y;
+  // odom_msg.twist.twist.angular.z = pose_data.angular_velocity.z;
+
+  odom_msg.twist.twist.angular.x = base_link_angular_velocity.getX();
+  odom_msg.twist.twist.angular.y = base_link_angular_velocity.getY();
+  odom_msg.twist.twist.angular.z = base_link_angular_velocity.getZ();
+
+  // TODO: Remove this when finished testing
+  // Old method: Linear velocity from realsense
+  // tf2::Vector3 linear_velocity_test(pose_data.velocity.x, pose_data.velocity.y,
+  //                                   pose_data.velocity.z);
+  // tf2::Vector3 odom_linear_velocity_test = base_link_to_realsense_pose_odom_.getBasis() *
+  //                                          realsense_link_to_realsense_pose_.getBasis() *
+  //                                          linear_velocity_test;
+
+  // tf2::Vector3 base_link_linear_velocity_test =
+  //     base_link_pose.inverse().getBasis() * odom_linear_velocity_test;
+
+  // odom_msg.twist.twist.linear.x = base_link_linear_velocity_test.getX();
+  // odom_msg.twist.twist.linear.y = base_link_linear_velocity_test.getY();
+  // odom_msg.twist.twist.linear.z = base_link_linear_velocity_test.getZ();
+
+  // // Get angular velocity from pose data
+  // odom_msg.twist.twist.angular.x = pose_data.angular_velocity.x;
+  // odom_msg.twist.twist.angular.y = pose_data.angular_velocity.y;
+  // odom_msg.twist.twist.angular.z = pose_data.angular_velocity.z;
+  // pose_sensor_test_->updateData(odom_msg);
+
   pose_sensor_->updateData(odom_msg);
 
   return;
@@ -364,8 +341,9 @@ void RealsenseInterface::runImu(const rs2::motion_frame &accel_frame_,
 
   rclcpp::Time timestamp;
   // get time from frame metadata
-  double accel_time = accel_frame_.get_timestamp();
-  double gyro_time  = gyro_frame_.get_timestamp();
+  // Realsense timestamp is in microseconds
+  double accel_time = accel_frame_.get_timestamp() * 1000;
+  double gyro_time  = gyro_frame_.get_timestamp() * 1000;
   if (gyro_time > accel_time) {
     timestamp = rclcpp::Time(gyro_time);
   } else {
@@ -390,7 +368,8 @@ void RealsenseInterface::runImu(const rs2::motion_frame &accel_frame_,
 }
 
 void RealsenseInterface::runColor(const rs2::video_frame &_color_frame) {
-  rclcpp::Time timestamp = rclcpp::Time(_color_frame.get_timestamp());
+  // Realsense timestamp is in microseconds
+  rclcpp::Time timestamp = rclcpp::Time(_color_frame.get_timestamp() * 1000);
   sensor_msgs::msg::Image color_msg;
   color_msg.header.frame_id = color_sensor_frame_;
   color_msg.header.stamp    = timestamp;
@@ -487,30 +466,30 @@ bool RealsenseInterface::identifyDevice() {
   for (auto dev : devices) {
     if (dev.supports(RS2_CAMERA_INFO_NAME)) {
       auto device_name = std::string(dev.get_info(RS2_CAMERA_INFO_NAME));
-      std::cout << "Device Name: " << device_name << std::endl;
+      RCLCPP_INFO(get_logger(), "Found device: %s", device_name.c_str());
 
       if (verbose_) {
         if (dev.supports(RS2_CAMERA_INFO_SERIAL_NUMBER))
-          std::cout << "Device Serial No: " << dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER)
-                    << std::endl;
-        if (dev.supports(RS2_CAMERA_INFO_FIRMWARE_VERSION))
-          std::cout << "Device FW version: " << dev.get_info(RS2_CAMERA_INFO_FIRMWARE_VERSION)
-                    << std::endl;
-        if (dev.supports(RS2_CAMERA_INFO_PHYSICAL_PORT))
-          std::cout << "Device physical port: " << dev.get_info(RS2_CAMERA_INFO_PHYSICAL_PORT)
-                    << std::endl;
-        if (dev.supports(RS2_CAMERA_INFO_DEBUG_OP_CODE))
-          std::cout << "Device supports debug op code: "
-                    << dev.get_info(RS2_CAMERA_INFO_DEBUG_OP_CODE) << std::endl;
+          RCLCPP_INFO(get_logger(), "Device serial number: %s",
+                      dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER));
         if (dev.supports(RS2_CAMERA_INFO_PRODUCT_ID))
-          std::cout << "Device product ID: " << dev.get_info(RS2_CAMERA_INFO_PRODUCT_ID)
-                    << std::endl;
-        if (dev.supports(RS2_CAMERA_INFO_CAMERA_LOCKED))
-          std::cout << "Device supports locked camera: "
-                    << dev.get_info(RS2_CAMERA_INFO_CAMERA_LOCKED) << std::endl;
+          RCLCPP_INFO(get_logger(), "Device product ID: %s",
+                      dev.get_info(RS2_CAMERA_INFO_PRODUCT_ID));
+        if (dev.supports(RS2_CAMERA_INFO_FIRMWARE_VERSION))
+          RCLCPP_INFO(get_logger(), "Device firmware version: %s",
+                      dev.get_info(RS2_CAMERA_INFO_FIRMWARE_VERSION));
+        if (dev.supports(RS2_CAMERA_INFO_PHYSICAL_PORT))
+          RCLCPP_INFO(get_logger(), "Device physical port: %s",
+                      dev.get_info(RS2_CAMERA_INFO_PHYSICAL_PORT));
         if (dev.supports(RS2_CAMERA_INFO_USB_TYPE_DESCRIPTOR))
-          std::cout << "Device USB type descriptor: "
-                    << dev.get_info(RS2_CAMERA_INFO_USB_TYPE_DESCRIPTOR) << std::endl;
+          RCLCPP_INFO(get_logger(), "Device USB type descriptor: %s",
+                      dev.get_info(RS2_CAMERA_INFO_USB_TYPE_DESCRIPTOR));
+        if (dev.supports(RS2_CAMERA_INFO_DEBUG_OP_CODE))
+          RCLCPP_INFO(get_logger(), "Device supports debug op code: %s",
+                      dev.get_info(RS2_CAMERA_INFO_DEBUG_OP_CODE));
+        if (dev.supports(RS2_CAMERA_INFO_CAMERA_LOCKED))
+          RCLCPP_INFO(get_logger(), "Device supports camera locked: %s",
+                      dev.get_info(RS2_CAMERA_INFO_CAMERA_LOCKED));
       }
 
       identifySensors(dev);
@@ -532,10 +511,6 @@ bool RealsenseInterface::identifySensors(const rs2::device &dev) {
     RCLCPP_INFO(get_logger(), " - %s", sensor.get_info(RS2_CAMERA_INFO_NAME));
 
     for (auto profile : sensor.get_stream_profiles()) {
-      // std::cout << "   - ID: " << profile.unique_id() << " NAME: " << profile.stream_name()
-      //           << " INDEX: " << profile.stream_index() << " TYPE: " << profile.stream_type()
-      //           << " FORMAT: " << profile.format() << " FPS: " << profile.fps() << std::endl;
-
       if (profile.stream_type() == RS2_STREAM_GYRO) {
         gyro_available = true;
       }
@@ -586,13 +561,6 @@ void RealsenseInterface::setStaticTransform(const std::string _link_frame,
                                             const std::string _ref_frame,
                                             const std::array<double, 3> &_translation,
                                             const std::array<double, 3> &_rotation) {
-  std::cout << "TF_DEVICE: " << _link_frame << std::endl;
-  std::cout << "TF_REF: " << _ref_frame << std::endl;
-  std::cout << "TF_TRANSLATION: " << _translation[0] << " " << _translation[1] << " "
-            << _translation[2] << std::endl;
-  std::cout << "TF_ROTATION: " << _rotation[0] << " " << _rotation[1] << " " << _rotation[2]
-            << std::endl;
-
   // Publish static transform
   geometry_msgs::msg::TransformStamped transform_stamped;
   transform_stamped.header.stamp            = this->now();

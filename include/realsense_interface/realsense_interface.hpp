@@ -65,7 +65,7 @@
 class RealsenseInterface : public as2::Node {
 public:
   /**
-   * @brief Constructor of the RsT265Interface object
+   * @brief Constructor of the RealsenseInterface object
    *
    */
   RealsenseInterface();
@@ -78,9 +78,8 @@ public:
 
   /**
    * @brief Funtionality during node lifetime.
-   * This function gets the pose data from VIO device,
-   * updates the transform tree and
-   * and publish the odometry message.
+   * This function gets the sensor measurements
+   * from realsense device and publish them.
    */
   void run();
 
