@@ -7,7 +7,7 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
@@ -16,7 +16,7 @@
  * 3. Neither the name of the copyright holder nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
  * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -30,22 +30,16 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ********************************************************************************/
 
-#include "rs_t265_interface.hpp"
 #include "as2_core/core_functions.hpp"
+#include "realsense_interface.hpp"
 
-
-int main(int argc, char * argv[])
-{
-  // find_device_with_streams
+int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<RsT265Interface>();
-  node->setupOdom();
-  node->setupTf();  
-  
-  // node->preset_loop_frequency(200);
-  as2::spinLoop(node, std::bind(&RsT265Interface::runOdom, node));
-  
-  node->stopOdom();
+  auto node = std::make_shared<RealsenseInterface>();
+  node->preset_loop_frequency(100);
+
+  as2::spinLoop(node, std::bind(&RealsenseInterface::run, node));
+
   rclcpp::shutdown();
   return 0;
 }
